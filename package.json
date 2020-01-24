@@ -23,7 +23,8 @@
         "opa"
     ],
     "activationEvents": [
-        "onCommand:gatekeeper.install"
+        "onCommand:gatekeeper.install",
+        "onView:extension.vsKubernetesExplorer"
     ],
     "main": "./out/extension",
     "contributes": {
