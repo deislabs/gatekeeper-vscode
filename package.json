@@ -23,16 +23,25 @@
         "opa"
     ],
     "activationEvents": [
-        "onCommand:extension.sayHello"
+        "onCommand:gatekeeper.install"
     ],
     "main": "./out/extension",
     "contributes": {
         "commands": [
             {
-                "command": "extension.sayHello",
-                "title": "Hello World"
+                "command": "gatekeeper.install",
+                "title": "Install Gatekeeper"
             }
-        ]
+        ],
+        "menus": {
+            "view/item/context": [
+                {
+                    "command": "gatekeeper.install",
+                    "group": "80",
+                    "when": "viewItem =~ /vsKubernetes\\.\\w*cluster($|[^.])/i"
+                }
+            ]
+        }
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
