@@ -4,7 +4,7 @@ import { failed } from '../utils/errorable';
 import { listConstraintTemplates, ConstraintTemplateInfo, listConstraints, ConstraintInfo } from '../gatekeeper';
 
 export namespace ResourceBrowser {
-    export function create(kubectl: k8s.KubectlV1, clusterExplorer: k8s.ClusterExplorerV1, extensionContext: vscode.ExtensionContext): k8s.ClusterExplorerV1.NodeContributor {
+    export function create(kubectl: k8s.KubectlV1): k8s.ClusterExplorerV1.NodeContributor {
         return new GatekeeperNodeContributor(kubectl);
 
         // So... how do we render the Gatekeeper stuff?  E.g.

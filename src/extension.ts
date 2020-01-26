@@ -18,7 +18,7 @@ export async function activate(context: vscode.ExtensionContext) {
     } else if (!kubectl.available) {
         vscode.window.showWarningMessage(`Can't show Gatekeeper resources: ${unavailableMessage(kubectl.reason)}`);
     } else {
-        clusterExplorer.api.registerNodeContributor(ResourceBrowser.create(kubectl.api, clusterExplorer.api, context));
+        clusterExplorer.api.registerNodeContributor(ResourceBrowser.create(kubectl.api));
     }
 }
 
