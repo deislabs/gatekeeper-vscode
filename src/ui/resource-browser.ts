@@ -1,11 +1,10 @@
 import * as vscode from 'vscode';
 import * as k8s from 'vscode-kubernetes-tools-api';
-import { GATEKEEPER_RESOURCE_KINDS } from '../gatekeeper';
+import { Errorable, failed } from '../utils/errorable';
 
 export namespace ResourceBrowser {
     export function create(kubectl: k8s.KubectlV1, clusterExplorer: k8s.ClusterExplorerV1, extensionContext: vscode.ExtensionContext): k8s.ClusterExplorerV1.NodeContributor {
-        const resourceFolders = GATEKEEPER_RESOURCE_KINDS.map((k) => clusterExplorer.nodeSources.resourceFolder(k.displayName, k.pluralDisplayName, k.manifestKind, k.abbreviation));
-        return clusterExplorer.nodeSources.groupingFolder("Gatekeeper", undefined, ...resourceFolders).at(undefined);
+        return new GatekeeperNodeContributor(kubectl);
 
         // Real world:
         // * A ConstraintTemplate contains:
@@ -60,5 +59,100 @@ export namespace ResourceBrowser {
         // TODO: there is also a sync section in the GK config (gatekeeper-system/config)
         // which brings data into OPA for policies that need to look across multiple resources.
         // https://github.com/open-policy-agent/gatekeeper#replicating-data
+    }
+}
+
+class GatekeeperNodeContributor implements k8s.ClusterExplorerV1.NodeContributor {
+    constructor(private readonly kubectl: k8s.KubectlV1) { }
+    contributesChildren(parent: k8s.ClusterExplorerV1.ClusterExplorerNode | undefined): boolean {
+        return !!parent && parent.nodeType === 'context';
+    }
+    async getChildren(parent: k8s.ClusterExplorerV1.ClusterExplorerNode | undefined): Promise<k8s.ClusterExplorerV1.Node[]> {
+        if (this.contributesChildren(parent)) {
+            return [new GatekeeperFolderNode(this.kubectl)];
+        }
+        return [];
+    }
+}
+
+class GatekeeperFolderNode implements k8s.ClusterExplorerV1.Node {
+    constructor(private readonly kubectl: k8s.KubectlV1) { }
+    async getChildren(): Promise<k8s.ClusterExplorerV1.Node[]> {
+        const constraintTemplates = await listConstraintTemplates(this.kubectl);
+        if (failed(constraintTemplates)) {
+            return [new ErrorNode(constraintTemplates.error[0])];
+        }
+        return constraintTemplates.result.map((ct) => new ConstraintTemplateNode(this.kubectl, ct));
+    }
+    getTreeItem(): vscode.TreeItem {
+        return new vscode.TreeItem("Gatekeeper", vscode.TreeItemCollapsibleState.Collapsed);
+    }
+}
+
+class ConstraintTemplateNode implements k8s.ClusterExplorerV1.Node {
+    constructor(private readonly kubectl: k8s.KubectlV1, private readonly template: ConstraintTemplateInfo) {}
+    async getChildren(): Promise<k8s.ClusterExplorerV1.Node[]> {
+        const constraints = await listConstraints(this.kubectl, this.template.name);
+        if (failed(constraints)) {
+            return [new ErrorNode(constraints.error[0])];
+        }
+        return constraints.result.map((c) => new ConstraintNode(c));
+    }
+    getTreeItem(): vscode.TreeItem {
+        return new vscode.TreeItem(this.template.name, vscode.TreeItemCollapsibleState.Collapsed);
+    }
+}
+
+class ConstraintNode implements k8s.ClusterExplorerV1.Node {
+    constructor(private readonly instance: ConstraintInfo) {}
+    async getChildren(): Promise<k8s.ClusterExplorerV1.Node[]> {
+        return [];
+    }
+    getTreeItem(): vscode.TreeItem {
+        return new vscode.TreeItem(this.instance.name, vscode.TreeItemCollapsibleState.None);
+    }
+}
+
+interface ConstraintTemplateInfo {
+    readonly name: string;
+}
+
+interface ConstraintInfo {
+    readonly name: string;
+}
+
+async function listConstraintTemplates(kubectl: k8s.KubectlV1): Promise<Errorable<ConstraintTemplateInfo[]>> {
+    const sr = await kubectl.invokeCommand('get constrainttemplates -o json');
+    if (!sr || sr.code !== 0) {
+        const error = sr ? sr.stderr : 'Unable to run kubectl';
+        return { succeeded: false, error: [error] };
+    }
+    const templatesListResource = JSON.parse(sr.stdout);
+    const templates = templatesListResource.items as any[];
+    const templatesInfo = templates.map((t) => ({ name: t.metadata.name }));
+    return { succeeded: true, result: templatesInfo };
+}
+
+async function listConstraints(kubectl: k8s.KubectlV1, templateName: string): Promise<Errorable<ConstraintInfo[]>> {
+    const sr = await kubectl.invokeCommand(`get ${templateName} -o json`);
+    if (!sr || sr.code !== 0) {
+        const error = sr ? sr.stderr : 'Unable to run kubectl';
+        return { succeeded: false, error: [error] };
+    }
+    const constraintsListResource = JSON.parse(sr.stdout);
+    const constraints = constraintsListResource.items as any[];
+    const constraintsInfo = constraints.map((c) => ({ name: c.metadata.name }));
+    return { succeeded: true, result: constraintsInfo };
+}
+
+class ErrorNode implements k8s.ClusterExplorerV1.Node {
+    constructor(private readonly diagnostic: string) { }
+    async getChildren(): Promise<k8s.ClusterExplorerV1.Node[]> {
+        return [];
+    }
+    getTreeItem(): vscode.TreeItem {
+        const treeItem = new vscode.TreeItem('Error', vscode.TreeItemCollapsibleState.None);
+        treeItem.tooltip = this.diagnostic;
+        return treeItem;
     }
 }
