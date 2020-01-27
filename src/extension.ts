@@ -3,10 +3,12 @@ import * as k8s from 'vscode-kubernetes-tools-api';
 import { install } from './commands/install';
 import { unavailableMessage } from './utils/host';
 import { ResourceBrowser } from './ui/resource-browser';
+import { showViolations } from './commands/showViolations';
 
 export async function activate(context: vscode.ExtensionContext) {
     const disposables = [
-        vscode.commands.registerCommand('gatekeeper.install', install)
+        vscode.commands.registerCommand('gatekeeper.install', install),
+        vscode.commands.registerCommand('gatekeeper.violations', showViolations),
     ];
 
     context.subscriptions.push(...disposables);

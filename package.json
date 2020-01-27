@@ -24,6 +24,7 @@
     ],
     "activationEvents": [
         "onCommand:gatekeeper.install",
+        "onCommand:gatekeeper.violations",
         "onView:extension.vsKubernetesExplorer"
     ],
     "main": "./out/extension",
@@ -32,6 +33,10 @@
             {
                 "command": "gatekeeper.install",
                 "title": "Install Gatekeeper"
+            },
+            {
+                "command": "gatekeeper.violations",
+                "title": "Violations"
             }
         ],
         "menus": {
@@ -40,6 +45,21 @@
                     "command": "gatekeeper.install",
                     "group": "80",
                     "when": "viewItem =~ /vsKubernetes\\.\\w*cluster($|[^.])/i"
+                },
+                {
+                    "command": "gatekeeper.violations",
+                    "group": "10",
+                    "when": "viewItem =~ /gatekeeper\\.constraint/i && viewItem =~ /hasviolations/i"
+                }
+            ],
+            "commandPalette": [
+                {
+                    "command": "gatekeeper.install",
+                    "when": ""
+                },
+                {
+                    "command": "gatekeeper.violations",
+                    "when": ""
                 }
             ]
         }

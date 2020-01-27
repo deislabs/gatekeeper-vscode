@@ -23,7 +23,36 @@ export namespace ResourceBrowser {
         // (or default?) NS - what does it mean to have a constraint template or constraint in a
         // different NS?)
     }
+
+    export function resolve(target: any, clusterExplorer: k8s.ClusterExplorerV1): Node | undefined {
+        const k8snode = clusterExplorer.resolveCommandTarget(target);
+        if (!k8snode) {
+            // this can happen if a node gets passed unwrapped via vscode.TreeItem.command.arguments
+            return typedNode(target);
+        }
+        if (k8snode.nodeType !== 'extension') {
+            return undefined;
+        }
+        return typedNode(target.impl);  // TODO: fix the API
+    }
+
+    function typedNode(node: any): Node | undefined {
+        if (!node) {
+            return undefined;
+        }
+        if (node.nodeType === 'gatekeeper-folder') {
+            return node as GatekeeperFolderNode;
+        } else if (node.nodeType === 'gatekeeper-constraint-template') {
+            return node as ConstraintTemplateNode;
+        } else if (node.nodeType === 'gatekeeper-constraint') {
+            return node as ConstraintNode;
+        } else {
+            return undefined;
+        }
+    }
 }
+
+type Node = GatekeeperFolderNode | ConstraintTemplateNode | ConstraintNode;
 
 class GatekeeperNodeContributor implements k8s.ClusterExplorerV1.NodeContributor {
     constructor(private readonly kubectl: k8s.KubectlV1, private readonly extensionContext: vscode.ExtensionContext) { }
@@ -40,6 +69,7 @@ class GatekeeperNodeContributor implements k8s.ClusterExplorerV1.NodeContributor
 
 class GatekeeperFolderNode implements k8s.ClusterExplorerV1.Node {
     constructor(private readonly kubectl: k8s.KubectlV1, private readonly extensionContext: vscode.ExtensionContext) { }
+    readonly nodeType = 'gatekeeper-folder';
     async getChildren(): Promise<k8s.ClusterExplorerV1.Node[]> {
         const constraintTemplates = await listConstraintTemplates(this.kubectl);
         if (failed(constraintTemplates)) {
@@ -53,13 +83,14 @@ class GatekeeperFolderNode implements k8s.ClusterExplorerV1.Node {
 }
 
 class ConstraintTemplateNode implements k8s.ClusterExplorerV1.Node {
-    constructor(private readonly kubectl: k8s.KubectlV1, private readonly extensionContext: vscode.ExtensionContext, private readonly template: ConstraintTemplateInfo) {}
+    constructor(private readonly kubectl: k8s.KubectlV1, private readonly extensionContext: vscode.ExtensionContext, readonly template: ConstraintTemplateInfo) {}
+    readonly nodeType = 'gatekeeper-constraint-template';
     async getChildren(): Promise<k8s.ClusterExplorerV1.Node[]> {
         const constraints = await listConstraints(this.kubectl, this.template.name);
         if (failed(constraints)) {
             return [new ErrorNode(constraints.error[0])];
         }
-        return constraints.result.map((c) => new ConstraintNode(this.extensionContext, c));
+        return constraints.result.map((c) => new ConstraintNode(this.extensionContext, this.template, c));
     }
     getTreeItem(): vscode.TreeItem {
         return new vscode.TreeItem(this.template.name, vscode.TreeItemCollapsibleState.Collapsed);
@@ -67,14 +98,16 @@ class ConstraintTemplateNode implements k8s.ClusterExplorerV1.Node {
 }
 
 class ConstraintNode implements k8s.ClusterExplorerV1.Node {
-    constructor(private readonly extensionContext: vscode.ExtensionContext, private readonly instance: ConstraintInfo) {}
+    constructor(private readonly extensionContext: vscode.ExtensionContext, readonly template: ConstraintTemplateInfo, readonly constraint: ConstraintInfo) {}
+    readonly nodeType = 'gatekeeper-constraint';
     async getChildren(): Promise<k8s.ClusterExplorerV1.Node[]> {
         return [];
     }
     getTreeItem(): vscode.TreeItem {
-        const treeItem = new vscode.TreeItem(this.instance.name, vscode.TreeItemCollapsibleState.None);
-        treeItem.iconPath = this.extensionContext.asAbsolutePath(constraintIcon(this.instance.status));
-        treeItem.tooltip = constraintTooltip(this.instance.status);
+        const treeItem = new vscode.TreeItem(this.constraint.name, vscode.TreeItemCollapsibleState.None);
+        treeItem.iconPath = this.extensionContext.asAbsolutePath(constraintIcon(this.constraint.status));
+        treeItem.tooltip = constraintTooltip(this.constraint.status);
+        treeItem.contextValue = ['gatekeeper.constraint', ...constraintContexts(this.constraint)].join(' ');
         return treeItem;
     }
 }
@@ -109,6 +142,12 @@ function constraintTooltip(status: ConstraintStatus | undefined): string | undef
         return `${status.violationCount} violation(s) (checked at ${displayTimestamp(status.timestamp)})`;
     }
     return undefined;
+}
+
+function* constraintContexts(constraint: ConstraintInfo) {
+    if (constraint.status && constraint.status.violationCount > 0) {
+        yield 'hasviolations';
+    }
 }
 
 function displayTimestamp(timestamp: Date): string {
