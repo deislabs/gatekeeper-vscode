@@ -19,3 +19,25 @@ export function unavailableMessage(reason: "version-unknown" | "version-removed"
         case "version-unknown": return "please check for updates to the 'Kubernetes' extension";
     }
 }
+
+export async function showWorkspaceFolderPick(): Promise<vscode.WorkspaceFolder | undefined> {
+    if (!vscode.workspace.workspaceFolders) {
+        vscode.window.showErrorMessage('This command requires an open folder.');
+        return undefined;
+    } else if (vscode.workspace.workspaceFolders.length === 1) {
+        return vscode.workspace.workspaceFolders[0];
+    }
+    return await vscode.window.showWorkspaceFolderPick();
+}
+
+export async function selectRootFolder(): Promise<string | undefined> {
+    const folder = await showWorkspaceFolderPick();
+    if (!folder) {
+        return undefined;
+    }
+    if (folder.uri.scheme !== 'file') {
+        vscode.window.showErrorMessage("This command requires a filesystem folder");  // TODO: make it not
+        return undefined;
+    }
+    return folder.uri.fsPath;
+}

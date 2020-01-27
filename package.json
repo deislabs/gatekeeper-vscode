@@ -26,6 +26,7 @@
         "onCommand:gatekeeper.install",
         "onCommand:gatekeeper.violations",
         "onCommand:gatekeeper.show",
+        "onCommand:gatekeeper.showRego",
         "onView:extension.vsKubernetesExplorer"
     ],
     "main": "./out/extension",
@@ -42,6 +43,10 @@
             {
                 "command": "gatekeeper.show",
                 "title": "Show"
+            },
+            {
+                "command": "gatekeeper.showRego",
+                "title": "Show Rego"
             }
         ],
         "menus": {
@@ -53,8 +58,13 @@
                 },
                 {
                     "command": "gatekeeper.show",
-                    "group": "1",
+                    "group": "1@1",
                     "when": "viewItem =~ /gatekeeper\\.showable/i"
+                },
+                {
+                    "command": "gatekeeper.showRego",
+                    "group": "1@2",
+                    "when": "viewItem =~ /gatekeeper\\.constrainttemplate/i"
                 },
                 {
                     "command": "gatekeeper.violations",
@@ -72,6 +82,10 @@
                     "when": ""
                 },
                 {
+                    "command": "gatekeeper.showRego",
+                    "when": ""
+                },
+                {
                     "command": "gatekeeper.violations",
                     "when": ""
                 }
@@ -86,6 +100,7 @@
         "test": "npm run compile && node ./node_modules/vscode/bin/test"
     },
     "dependencies": {
+        "querystring": "^0.2.0",
         "vscode-kubernetes-tools-api": "^1.0.0"
     },
     "devDependencies": {
