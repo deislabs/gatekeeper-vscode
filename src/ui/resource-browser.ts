@@ -93,7 +93,9 @@ class ConstraintTemplateNode implements k8s.ClusterExplorerV1.Node {
         return constraints.result.map((c) => new ConstraintNode(this.extensionContext, this.template, c));
     }
     getTreeItem(): vscode.TreeItem {
-        return new vscode.TreeItem(this.template.name, vscode.TreeItemCollapsibleState.Collapsed);
+        const treeItem = new vscode.TreeItem(this.template.name, vscode.TreeItemCollapsibleState.Collapsed);
+        treeItem.contextValue = 'gatekeeper.showable';
+        return treeItem;
     }
 }
 
@@ -107,7 +109,7 @@ class ConstraintNode implements k8s.ClusterExplorerV1.Node {
         const treeItem = new vscode.TreeItem(this.constraint.name, vscode.TreeItemCollapsibleState.None);
         treeItem.iconPath = this.extensionContext.asAbsolutePath(constraintIcon(this.constraint.status));
         treeItem.tooltip = constraintTooltip(this.constraint.status);
-        treeItem.contextValue = ['gatekeeper.constraint', ...constraintContexts(this.constraint)].join(' ');
+        treeItem.contextValue = ['gatekeeper.constraint', 'gatekeeper.showable', ...constraintContexts(this.constraint)].join(' ');
         return treeItem;
     }
 }

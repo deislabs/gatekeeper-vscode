@@ -25,6 +25,7 @@
     "activationEvents": [
         "onCommand:gatekeeper.install",
         "onCommand:gatekeeper.violations",
+        "onCommand:gatekeeper.show",
         "onView:extension.vsKubernetesExplorer"
     ],
     "main": "./out/extension",
@@ -37,6 +38,10 @@
             {
                 "command": "gatekeeper.violations",
                 "title": "Violations"
+            },
+            {
+                "command": "gatekeeper.show",
+                "title": "Show"
             }
         ],
         "menus": {
@@ -47,6 +52,11 @@
                     "when": "viewItem =~ /vsKubernetes\\.\\w*cluster($|[^.])/i"
                 },
                 {
+                    "command": "gatekeeper.show",
+                    "group": "1",
+                    "when": "viewItem =~ /gatekeeper\\.showable/i"
+                },
+                {
                     "command": "gatekeeper.violations",
                     "group": "10",
                     "when": "viewItem =~ /gatekeeper\\.constraint/i && viewItem =~ /hasviolations/i"
@@ -55,6 +65,10 @@
             "commandPalette": [
                 {
                     "command": "gatekeeper.install",
+                    "when": ""
+                },
+                {
+                    "command": "gatekeeper.show",
                     "when": ""
                 },
                 {

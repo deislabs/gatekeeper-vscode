@@ -4,10 +4,12 @@ import { install } from './commands/install';
 import { unavailableMessage } from './utils/host';
 import { ResourceBrowser } from './ui/resource-browser';
 import { showViolations } from './commands/showViolations';
+import { showResource } from './commands/showResource';
 
 export async function activate(context: vscode.ExtensionContext) {
     const disposables = [
         vscode.commands.registerCommand('gatekeeper.install', install),
+        vscode.commands.registerCommand('gatekeeper.show', showResource),
         vscode.commands.registerCommand('gatekeeper.violations', showViolations),
     ];
 
