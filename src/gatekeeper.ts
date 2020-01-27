@@ -170,3 +170,15 @@ function resourceId(violation: any): ResourceId {
         // TODO: namespace?
     };
 }
+
+export function getRegoFromTemplate(template: any): Errorable<string> {
+    if (!template || !template.spec || !template.spec.targets) {
+        return { succeeded: false, error: ['No targets or multiple targets'] };
+    }
+    const rego = template.spec.targets[0].rego;
+    if (!rego) {
+        return { succeeded: false, error: ['No rego in spec.targets'] };
+    }
+    return { succeeded: true, result: rego as string };
+
+}

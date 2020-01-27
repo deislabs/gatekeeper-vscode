@@ -94,7 +94,7 @@ class ConstraintTemplateNode implements k8s.ClusterExplorerV1.Node {
     }
     getTreeItem(): vscode.TreeItem {
         const treeItem = new vscode.TreeItem(this.template.name, vscode.TreeItemCollapsibleState.Collapsed);
-        treeItem.contextValue = 'gatekeeper.showable';
+        treeItem.contextValue = ['gatekeeper.constrainttemplate', 'gatekeeper.showable'].join(' ');
         return treeItem;
     }
 }
