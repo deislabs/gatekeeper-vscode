@@ -44,6 +44,34 @@ export interface ConstraintTemplateInfo {
 
 export interface ConstraintInfo {
     readonly name: string;
+    readonly status: ConstraintStatus | undefined;
+}
+
+export interface ConstraintStatus {
+    readonly timestamp: Date;
+    readonly violationCount: number;
+}
+
+export interface ConstraintDetail {
+    readonly name: string;
+    readonly templateName: string;
+    readonly status: ConstraintStatusDetail | undefined;
+}
+
+export interface ConstraintStatusDetail {
+    readonly timestamp: Date;
+    readonly violations: ReadonlyArray<ConstraintViolation>;
+}
+
+export interface ConstraintViolation {
+    readonly resource: ResourceId;
+    readonly message: string;
+}
+
+export interface ResourceId {
+    readonly kind: string;
+    readonly name: string;
+    // TODO: should there be a namespace property for resources other than NSes?
 }
 
 export async function listConstraintTemplates(kubectl: k8s.KubectlV1): Promise<Errorable<ConstraintTemplateInfo[]>> {
@@ -66,6 +94,79 @@ export async function listConstraints(kubectl: k8s.KubectlV1, templateName: stri
     }
     const constraintsListResource = JSON.parse(sr.stdout);
     const constraints = constraintsListResource.items as any[];
-    const constraintsInfo = constraints.map((c) => ({ name: c.metadata.name }));
+    const constraintsInfo = constraints.map((c) => constraintInfo(c));
     return { succeeded: true, result: constraintsInfo };
+}
+
+export async function getConstraint(kubectl: k8s.KubectlV1, templateName: string, constraintName: string): Promise<Errorable<ConstraintDetail>> {
+    const sr = await kubectl.invokeCommand(`get ${templateName}/${constraintName} -o json`);
+    if (!sr || sr.code !== 0) {
+        const error = sr ? sr.stderr : 'Unable to run kubectl';
+        return { succeeded: false, error: [error] };
+    }
+    const constraint = JSON.parse(sr.stdout);
+    const constraintDetail = {
+        name: constraintName,
+        templateName: templateName,
+        status: constraintDetailedStatus(constraint.status)
+    };
+    return { succeeded: true, result: constraintDetail };
+}
+
+function constraintInfo(c: any): ConstraintInfo {
+    const name = c.metadata.name;
+    const status = constraintStatus(c.status);
+    return { name, status };
+}
+
+function constraintStatus(status: any): ConstraintStatus | undefined {
+    if (!status) {
+        return undefined;
+    }
+
+    const timestampISO = status.auditTimestamp as string | undefined;
+    if (!timestampISO) {
+        return undefined;
+    }
+
+    // TODO: should flag violation status as unknown if not syncing - but there's
+    // really no way to know if resources of interest are synced - could go through
+    // .spec.match.kinds if present I guess...?
+    const violationCount = status.totalViolations as number | undefined;
+    if (violationCount === undefined) {
+        return undefined;
+    }
+
+    const timestamp = new Date(timestampISO);
+    return { timestamp, violationCount };
+}
+
+function constraintDetailedStatus(status: any): ConstraintStatusDetail | undefined {
+    if (!status) {
+        return undefined;
+    }
+
+    const timestampISO = status.auditTimestamp as string | undefined;
+    if (!timestampISO) {
+        return undefined;
+    }
+
+    // TODO: better feedback if target resources not synced
+    const rawViolations = (status.violations || []) as any[];
+
+    const timestamp = new Date(timestampISO);
+
+    const violations = rawViolations.map((v) => ({
+        resource: resourceId(v),
+        message: v.message
+    }));
+    return { timestamp, violations };
+}
+
+function resourceId(violation: any): ResourceId {
+    return {
+        kind: violation.kind,
+        name: violation.name,
+        // TODO: namespace?
+    };
 }
