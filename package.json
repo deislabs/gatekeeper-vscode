@@ -28,6 +28,7 @@
         "onCommand:gatekeeper.show",
         "onCommand:gatekeeper.showRego",
         "onCommand:gatekeeper.enforcementAction",
+        "onCommand:gatekeeper.deployTemplate",
         "onLanguage:rego",
         "onView:extension.vsKubernetesExplorer"
     ],
@@ -53,6 +54,10 @@
             {
                 "command": "gatekeeper.enforcementAction",
                 "title": "Enforcement Action"
+            },
+            {
+                "command": "gatekeeper.deployTemplate",
+                "title": "Deploy as Gatekeeper Constraint Template"
             }
         ],
         "menus": {
@@ -81,6 +86,13 @@
                     "command": "gatekeeper.enforcementAction",
                     "group": "5",
                     "when": "viewItem =~ /gatekeeper\\.constraint/i"
+                }
+            ],
+            "editor/context": [
+                {
+                    "command": "gatekeeper.deployTemplate",
+                    "group": "99@2",
+                    "when": "editorLangId == rego"
                 }
             ],
             "commandPalette": [
