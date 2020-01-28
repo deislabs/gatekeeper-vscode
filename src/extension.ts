@@ -7,6 +7,7 @@ import { showViolations } from './commands/showViolations';
 import { showResource } from './commands/showResource';
 import { showRego } from './commands/showRego';
 import { ConstraintTemplateRegoFileSystemProvider, GK_REGO_RESOURCE_SCHEME } from './ui/rego-only.vfs';
+import * as diagnostics from './diagnostics/diagnostics';
 
 export async function activate(context: vscode.ExtensionContext) {
     const clusterExplorer = await k8s.extension.clusterExplorer.v1;
@@ -33,6 +34,8 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(...disposables);
 
     clusterExplorer.api.registerNodeContributor(ResourceBrowser.create(kubectl.api, context));
+
+    diagnostics.initialise();
 }
 
 export function deactivate() {

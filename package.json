@@ -27,6 +27,7 @@
         "onCommand:gatekeeper.violations",
         "onCommand:gatekeeper.show",
         "onCommand:gatekeeper.showRego",
+        "onLanguage:rego",
         "onView:extension.vsKubernetesExplorer"
     ],
     "main": "./out/extension",
