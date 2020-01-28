@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import levenshtein = require('js-levenshtein');
 
-import * as path from 'path';
 import { Linter } from './linter';
 import * as regex from '../utils/regex';
 import { flatten } from '../utils/array';
+import { associatedSchema, JSONSchema } from '../authoring/associations';
 
 // The idea with this one is that if the .rego contains an expression of
 // the form `input.parameters.<identifier>` then the schema should contain
@@ -66,20 +66,6 @@ async function fixes(diagnostic: vscode.Diagnostic, document: vscode.TextDocumen
     return await proposeParameters(diagnostic, document, schema);
 }
 
-async function associatedSchema(document: vscode.TextDocument): Promise<JSONSchema | null> {
-    try {
-        const regoPath = document.uri.fsPath;
-        const schemaPath = changeExtension(regoPath, 'schema.json');
-        const schemaDocument = await vscode.workspace.openTextDocument(schemaPath);
-        const schemaText = schemaDocument.getText();
-        const schema = JSON.parse(schemaText);
-        return schema;
-    } catch {
-        // It throws if the schema document doesn't exist or isn't parseable - we can just abandon ship in these cases
-        return null;
-    }
-}
-
 async function proposeParameters(diagnostic: vscode.Diagnostic, document: vscode.TextDocument, schema: JSONSchema | null): Promise<ReadonlyArray<vscode.CodeAction>> {
     if (!schema || !schema.properties) {
         return [];
@@ -106,18 +92,6 @@ function substituteParameterEdit(document: vscode.TextDocument, range: vscode.Ra
     const edit = new vscode.WorkspaceEdit();
     edit.replace(document.uri, range, proposed);
     return edit;
-}
-
-interface JSONSchema {
-    readonly type?: string;
-    readonly properties?: { [name: string]: JSONSchema };
-    readonly items?: JSONSchema;
-}
-
-function changeExtension(filePath: string, newExt: string): string {
-    const ext = path.extname(filePath);
-    const basePath = filePath.substr(0, filePath.length - ext.length);
-    return `${basePath}.${newExt}`;
 }
 
 function textRange(document: vscode.TextDocument, index: number, length: number): vscode.Range {
