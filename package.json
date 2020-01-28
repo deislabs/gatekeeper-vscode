@@ -101,15 +101,17 @@
         "test": "npm run compile && node ./node_modules/vscode/bin/test"
     },
     "dependencies": {
+        "js-levenshtein": "^1.1.6",
         "querystring": "^0.2.0",
         "vscode-kubernetes-tools-api": "^1.0.0"
     },
     "devDependencies": {
-        "typescript": "^3.7.3",
-        "vscode": "^1.1.6",
-        "tslint": "^5.8.0",
+        "@types/js-levenshtein": "^1.1.0",
+        "@types/mocha": "^2.2.42",
         "@types/node": "^7.0.43",
-        "@types/mocha": "^2.2.42"
+        "tslint": "^5.8.0",
+        "typescript": "^3.7.3",
+        "vscode": "^1.1.6"
     },
     "extensionDependencies": [
         "ms-kubernetes-tools.vscode-kubernetes-tools",

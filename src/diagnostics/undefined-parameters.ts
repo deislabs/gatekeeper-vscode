@@ -1,7 +1,10 @@
 import * as vscode from 'vscode';
+import levenshtein = require('js-levenshtein');
+
 import * as path from 'path';
 import { Linter } from './linter';
 import * as regex from '../utils/regex';
+import { flatten } from '../utils/array';
 
 // The idea with this one is that if the .rego contains an expression of
 // the form `input.parameters.<identifier>` then the schema should contain
@@ -10,6 +13,9 @@ import * as regex from '../utils/regex';
 // For the time being we are going to postulate a relationship of the
 // form foo.rego <-> foo.schema.json
 
+const MAX_TOLERANCE = 10;
+const MAX_OFFERED_FIXES = 5;
+
 class UndefinedParametersLinter implements Linter {
     async lint(document: vscode.TextDocument, text: string): Promise<vscode.Diagnostic[]> {
         const schema = await associatedSchema(document);
@@ -17,8 +23,12 @@ class UndefinedParametersLinter implements Linter {
         return Array.of(...diagnostics);
     }
 
-    fixes(_document: vscode.TextDocument, _text: string, _diagnostics: vscode.Diagnostic[]): vscode.CodeAction[] {
-        return [];
+    async fixes(document: vscode.TextDocument, _text: string, diagnostics: vscode.Diagnostic[]): Promise<vscode.CodeAction[]> {
+        const schema = await associatedSchema(document);
+        const fixables = diagnostics.filter((d) => d.code === DIAGNOSTIC_NO_DEFINITION);
+        const actionsPromises = fixables.map((f) => fixes(f, document, schema));
+        const actions = await Promise.all(actionsPromises);
+        return flatten(...actions);
     }
 }
 
@@ -42,13 +52,18 @@ function* lint(document: vscode.TextDocument, text: string, schema: JSONSchema |
         const parameterName = reference.groups[1];
         if (parameterName) {
             if (!schema.properties[parameterName]) {
-                const referenceRange = textRange(document, reference.index, reference.groups[0].length);
+                const offset = 'input.parameters.'.length;
+                const referenceRange = textRange(document, reference.index + offset, parameterName.length);
                 const diagnostic = new vscode.Diagnostic(referenceRange, `Schema file does not define property '${parameterName}'`, vscode.DiagnosticSeverity.Warning);
                 diagnostic.code = DIAGNOSTIC_NO_DEFINITION;
                 yield diagnostic;
             }
         }
     }
+}
+
+async function fixes(diagnostic: vscode.Diagnostic, document: vscode.TextDocument, schema: JSONSchema | null): Promise<ReadonlyArray<vscode.CodeAction>> {
+    return await proposeParameters(diagnostic, document, schema);
 }
 
 async function associatedSchema(document: vscode.TextDocument): Promise<JSONSchema | null> {
@@ -63,6 +78,34 @@ async function associatedSchema(document: vscode.TextDocument): Promise<JSONSche
         // It throws if the schema document doesn't exist or isn't parseable - we can just abandon ship in these cases
         return null;
     }
+}
+
+async function proposeParameters(diagnostic: vscode.Diagnostic, document: vscode.TextDocument, schema: JSONSchema | null): Promise<ReadonlyArray<vscode.CodeAction>> {
+    if (!schema || !schema.properties) {
+        return [];
+    }
+
+    const faultyText = document.getText(diagnostic.range);
+
+    const candidates = Object.keys(schema.properties)
+                           .map((v) => ({ name: v, score: levenshtein(v, faultyText) }))
+                           .sort((v1, v2) => v1.score - v2.score);
+
+    return candidates.filter((c) => c.score <= MAX_TOLERANCE)
+                     .slice(0, MAX_OFFERED_FIXES)
+                     .map((c) => substituteParameterAction(document, diagnostic.range, `${c.name}`));
+}
+
+function substituteParameterAction(document: vscode.TextDocument, range: vscode.Range, proposed: string): vscode.CodeAction {
+    const action = new vscode.CodeAction(`Change to ${proposed}`, vscode.CodeActionKind.QuickFix);
+    action.edit = substituteParameterEdit(document, range, proposed);
+    return action;
+}
+
+function substituteParameterEdit(document: vscode.TextDocument, range: vscode.Range, proposed: string): vscode.WorkspaceEdit {
+    const edit = new vscode.WorkspaceEdit();
+    edit.replace(document.uri, range, proposed);
+    return edit;
 }
 
 interface JSONSchema {
