@@ -27,6 +27,7 @@
         "onCommand:gatekeeper.violations",
         "onCommand:gatekeeper.show",
         "onCommand:gatekeeper.showRego",
+        "onCommand:gatekeeper.enforcementAction",
         "onLanguage:rego",
         "onView:extension.vsKubernetesExplorer"
     ],
@@ -48,6 +49,10 @@
             {
                 "command": "gatekeeper.showRego",
                 "title": "Show Rego"
+            },
+            {
+                "command": "gatekeeper.enforcementAction",
+                "title": "Enforcement Action"
             }
         ],
         "menus": {
@@ -71,6 +76,11 @@
                     "command": "gatekeeper.violations",
                     "group": "10",
                     "when": "viewItem =~ /gatekeeper\\.constraint/i && viewItem =~ /hasviolations/i"
+                },
+                {
+                    "command": "gatekeeper.enforcementAction",
+                    "group": "5",
+                    "when": "viewItem =~ /gatekeeper\\.constraint/i"
                 }
             ],
             "commandPalette": [
@@ -84,6 +94,10 @@
                 },
                 {
                     "command": "gatekeeper.showRego",
+                    "when": ""
+                },
+                {
+                    "command": "gatekeeper.enforcementAction",
                     "when": ""
                 },
                 {
