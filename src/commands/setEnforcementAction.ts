@@ -3,7 +3,6 @@ import * as k8s from 'vscode-kubernetes-tools-api';
 import * as yaml from 'js-yaml';
 import { unavailableMessage, longRunning } from '../utils/host';
 import { ResourceBrowser } from '../ui/resource-browser';
-import { withTempFile } from '../utils/tempfile';
 
 const ENFORCEMENT_ACTIONS = [
     { baseLabel: 'Deny', action: 'deny'},
@@ -53,13 +52,16 @@ async function trySetEnforcementAction(kubectl: k8s.KubectlV1, templateName: str
         return;
     }
 
-    constraint.spec.enforcementAction = selection.action;
-    const newContraintYAML = yaml.safeDump(constraint);
+    const patch = {
+        spec: {
+            enforcementAction: selection.action
+        }
+    };
+    const patchJSON = JSON.stringify(patch);
+    const escapedPatchJSON = patchJSON.replace(/\"/g, "\\\"");
 
-    const applyResult = await withTempFile(newContraintYAML, 'yaml', (filename) =>
-        longRunning(`Updating constraint ${templateName}/${constraintName} with new action`, () =>
-            kubectl.invokeCommand(`apply -f ${filename}`)
-        )
+    const applyResult = await longRunning(`Updating constraint ${templateName}/${constraintName} with new action`, () =>
+        kubectl.invokeCommand(`patch ${templateName}/${constraintName} --type=merge --patch ${escapedPatchJSON}`)
     );
 
     if (!applyResult || applyResult.code !== 0) {
