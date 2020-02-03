@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import * as k8s from 'vscode-kubernetes-tools-api';
-import * as yaml from 'js-yaml';
 import { unavailableMessage, longRunning } from '../utils/host';
 import { ResourceBrowser } from '../ui/resource-browser';
 
@@ -31,7 +30,7 @@ export async function setEnforcementAction(target: any) {
 
 async function trySetEnforcementAction(kubectl: k8s.KubectlV1, templateName: string, constraintName: string): Promise<void> {
     const sr = await longRunning(`Getting constraint ${templateName}/${constraintName}`, () =>
-        kubectl.invokeCommand(`get ${templateName}/${constraintName} -o yaml`)
+        kubectl.invokeCommand(`get ${templateName}/${constraintName} -o json`)
     );
     if (!sr || sr.code !== 0) {
         const message = sr ? sr.stderr : 'Unable to run kubectl';
@@ -39,8 +38,8 @@ async function trySetEnforcementAction(kubectl: k8s.KubectlV1, templateName: str
         return;
     }
 
-    const constraintYAML = sr.stdout;
-    const constraint = yaml.safeLoad(constraintYAML);
+    const constraintJSON = sr.stdout;
+    const constraint = JSON.parse(constraintJSON);
     const currentAction: string = ((constraint.spec || {}).enforcementAction) || 'deny';
 
     const availableActions = ENFORCEMENT_ACTIONS.map((a) => {
