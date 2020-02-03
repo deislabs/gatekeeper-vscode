@@ -6,6 +6,7 @@ import * as yaml from 'js-yaml';
 import { associatedSchema, JSONSchema } from '../authoring/associations';
 import { withTempFile } from '../utils/tempfile';
 import { longRunning, unavailableMessage } from '../utils/host';
+import { multiButtonDialog, END_MESSAGE_DIALOG_WITH } from '../utils/dialog';
 
 export async function deployTemplate(textEditor: vscode.TextEditor, _edit: vscode.TextEditorEdit) {
     // what we need to do:
@@ -37,11 +38,15 @@ export async function deployTemplate(textEditor: vscode.TextEditor, _edit: vscod
     const templateName = identifierfy(rawName);
     const rego = regoDoc.getText();
 
-    const template = constraintTemplate(templateName, rego, associatedSchemaObj);
+    const template = constraintTemplate(templateName, rawName, rego, associatedSchemaObj);
 
     const templateYAML = yaml.safeDump(template);
 
-    // TODO: prompt with template body
+    const deployAction = await confirmDeploy(templateYAML, templateName);
+
+    if (deployAction === DeployAction.Cancel) {
+        return;
+    }
 
     const deployResult = await withTempFile(templateYAML, 'yaml', (filename) =>
         longRunning(`Deploying template ${templateName} to cluster...`, () =>
@@ -59,7 +64,39 @@ export async function deployTemplate(textEditor: vscode.TextEditor, _edit: vscod
     await vscode.window.showInformationMessage(`Deployed template ${templateName} to cluster`);
 }
 
-function constraintTemplate(templateName: string, rego: string, schema: JSONSchema): any {
+enum DeployAction {
+    Cancel,
+    Deploy,
+}
+
+const DEPLOY_BUTTON_ID = "btn_deploy";
+const CANCEL_BUTTON_ID = "btn_cancel";
+
+async function confirmDeploy(resourceYAML: string, resourceName: string): Promise<DeployAction> {
+    const markdown = [  // Markdown is sensitive to leading whitespace so be cautious if you try to prettify this
+`### This will deploy the following YAML as constraint template ${resourceName}`,
+`${markdownCode(resourceYAML)}`
+    ].join('\n');
+    const mdhtml = await vscode.commands.executeCommand<string>('markdown.api.render', markdown);
+    const html = `
+        <form id='form'>
+            <div>
+            ${mdhtml}
+            </div>
+            <p>
+                <button onclick='${END_MESSAGE_DIALOG_WITH(DEPLOY_BUTTON_ID)};'>Deploy to Cluster</button>
+                <button onclick='${END_MESSAGE_DIALOG_WITH(CANCEL_BUTTON_ID)};'>Cancel</button>
+            </p>
+        </form>
+    `;
+    const dialogResult = await multiButtonDialog(`Deploy ${resourceName}`, html, 'form');
+    switch (dialogResult.selectedButton) {
+        case DEPLOY_BUTTON_ID: return DeployAction.Deploy;
+        default: return DeployAction.Cancel;
+    }
+}
+
+function constraintTemplate(templateName: string, rawName: string, rego: string, schema: JSONSchema): any {
     return {
         apiVersion: "templates.gatekeeper.sh/v1beta1",
         kind: "ConstraintTemplate",
@@ -68,7 +105,7 @@ function constraintTemplate(templateName: string, rego: string, schema: JSONSche
         },
         spec: {
             crd: {
-                spec: constraintTemplateCRDSpec(templateName, schema)
+                spec: constraintTemplateCRDSpec(rawName, schema)
             },
             targets: [
                 constraintTemplateTarget(rego)
@@ -77,9 +114,9 @@ function constraintTemplate(templateName: string, rego: string, schema: JSONSche
     };
 }
 
-function constraintTemplateCRDSpec(templateName: string, schema: JSONSchema): any {
-    const kind = kindify(templateName);
-    const identifier = identifierfy(templateName);
+function constraintTemplateCRDSpec(rawName: string, schema: JSONSchema): any {
+    const kind = kindify(rawName);
+    const identifier = identifierfy(rawName);
     return {
         names: {
             kind: kind,
@@ -120,4 +157,9 @@ function titleCase(s: string): string {
 
 function identifierfy(name: string): string {
     return name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+}
+
+function markdownCode(code: string): string {
+    const delimiter = '```';
+    return `${delimiter}\n${code}\n${delimiter}`;
 }
