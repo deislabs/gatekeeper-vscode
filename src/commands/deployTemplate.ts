@@ -1,8 +1,11 @@
 import * as vscode from 'vscode';
+import * as k8s from 'vscode-kubernetes-tools-api';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 
 import { associatedSchema, JSONSchema } from '../authoring/associations';
+import { withTempFile } from '../utils/tempfile';
+import { longRunning, unavailableMessage } from '../utils/host';
 
 export async function deployTemplate(textEditor: vscode.TextEditor, _edit: vscode.TextEditorEdit) {
     // what we need to do:
@@ -10,6 +13,17 @@ export async function deployTemplate(textEditor: vscode.TextEditor, _edit: vscod
     // - display it to the user
     // - get their okay
     // - BAG IT UP AND SHIP IT OUT
+
+    const clusterExplorer = await k8s.extension.clusterExplorer.v1;
+    if (!clusterExplorer.available) {
+        await vscode.window.showWarningMessage(`Can't run command: ${unavailableMessage(clusterExplorer.reason)}`);
+        return;
+    }
+    const kubectl = await k8s.extension.kubectl.v1;
+    if (!kubectl.available) {
+        await vscode.window.showWarningMessage(`Can't run command: ${unavailableMessage(kubectl.reason)}`);
+        return;
+    }
 
     const regoDoc = textEditor.document;
     const associatedSchemaObj = await associatedSchema(regoDoc);
@@ -19,14 +33,30 @@ export async function deployTemplate(textEditor: vscode.TextEditor, _edit: vscod
         return;
     }
 
-    const templateName = path.basename(regoDoc.uri.fsPath, '.rego');  // TODO: or the package name?
+    const rawName = path.basename(regoDoc.uri.fsPath, '.rego');  // TODO: or the package name?
+    const templateName = identifierfy(rawName);
     const rego = regoDoc.getText();
 
     const template = constraintTemplate(templateName, rego, associatedSchemaObj);
 
     const templateYAML = yaml.safeDump(template);
 
-    console.log(templateYAML);
+    // TODO: prompt with template body
+
+    const deployResult = await withTempFile(templateYAML, 'yaml', (filename) =>
+        longRunning(`Deploying template ${templateName} to cluster...`, () =>
+            kubectl.api.invokeCommand(`apply -f ${filename}`)
+        )
+    );
+
+    if (!deployResult || deployResult.code !== 0) {
+        const message = deployResult ? deployResult.stderr : 'Unable to run kubectl';
+        await vscode.window.showErrorMessage(`Failed to deploy template: ${message}`);
+        return;
+    }
+
+    clusterExplorer.api.refresh();
+    await vscode.window.showInformationMessage(`Deployed template ${templateName} to cluster`);
 }
 
 function constraintTemplate(templateName: string, rego: string, schema: JSONSchema): any {
@@ -89,5 +119,5 @@ function titleCase(s: string): string {
 }
 
 function identifierfy(name: string): string {
-    return name.replace(/^a-zA-Z0-9/g, '').toLowerCase();
+    return name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 }
