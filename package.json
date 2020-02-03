@@ -116,13 +116,17 @@
     },
     "dependencies": {
         "js-levenshtein": "^1.1.6",
+        "js-yaml": "^3.13.1",
         "querystring": "^0.2.0",
+        "tmp": "^0.1.0",
         "vscode-kubernetes-tools-api": "^1.0.0"
     },
     "devDependencies": {
         "@types/js-levenshtein": "^1.1.0",
+        "@types/js-yaml": "^3.12.2",
         "@types/mocha": "^2.2.42",
-        "@types/node": "^7.0.43",
+        "@types/node": "^8.10.25",
+        "@types/tmp": "^0.1.0",
         "tslint": "^5.8.0",
         "typescript": "^3.7.3",
         "vscode": "^1.1.6"
