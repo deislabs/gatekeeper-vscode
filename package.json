@@ -62,7 +62,7 @@
             },
             {
                 "command": "gatekeeper.schema",
-                "title": "Parameters Schema"
+                "title": "Gatekeeper Parameters Schema"
             }
         ],
         "menus": {
