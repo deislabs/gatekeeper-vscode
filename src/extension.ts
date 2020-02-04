@@ -10,6 +10,7 @@ import { ConstraintTemplateRegoFileSystemProvider, GK_REGO_RESOURCE_SCHEME } fro
 import * as diagnostics from './diagnostics/diagnostics';
 import { GatekeeperCodeActionProvider } from './diagnostics/codeactionprovider';
 import { setEnforcementAction } from './commands/setEnforcementAction';
+import { deployTemplate } from './commands/deployTemplate';
 
 export async function activate(context: vscode.ExtensionContext) {
     const clusterExplorer = await k8s.extension.clusterExplorer.v1;
@@ -34,6 +35,7 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('gatekeeper.showRego', showRego),
         vscode.commands.registerCommand('gatekeeper.enforcementAction', setEnforcementAction),
         vscode.commands.registerCommand('gatekeeper.violations', showViolations),
+        vscode.commands.registerTextEditorCommand('gatekeeper.deployTemplate', deployTemplate),
         vscode.languages.registerCodeActionsProvider(regoSelector, codeActionProvider, { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }),
         vscode.workspace.registerFileSystemProvider(GK_REGO_RESOURCE_SCHEME, regofs),
     ];
