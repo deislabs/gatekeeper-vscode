@@ -64,6 +64,8 @@ function* extractInputParameters(rego: string) {
         return;
     }
 
+    const seen = Array.of<string>();
+
     for (const reference of parameterReferences) {
         if (reference.groups.length < 2) {
             continue;
@@ -71,6 +73,12 @@ function* extractInputParameters(rego: string) {
 
         const parameterName = reference.groups[1];
         const isArray = !!(reference.groups[2]);
+
+        if (seen.includes(parameterName)) {
+            continue;
+        }
+
+        seen.push(parameterName);
 
         yield { name: parameterName, isArray };
     }
