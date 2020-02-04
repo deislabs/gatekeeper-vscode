@@ -34,6 +34,7 @@ export function associatedSchemaPath(document: vscode.TextDocument): string {
 }
 
 export interface JSONSchema {
+    readonly $schema?: string;
     readonly type?: string;
     readonly properties?: { [name: string]: JSONSchema };
     readonly items?: JSONSchema;
