@@ -29,6 +29,7 @@
         "onCommand:gatekeeper.showRego",
         "onCommand:gatekeeper.enforcementAction",
         "onCommand:gatekeeper.deployTemplate",
+        "onCommand:gatekeeper.schema",
         "onLanguage:rego",
         "onView:extension.vsKubernetesExplorer"
     ],
@@ -58,6 +59,10 @@
             {
                 "command": "gatekeeper.deployTemplate",
                 "title": "Deploy as Gatekeeper Constraint Template"
+            },
+            {
+                "command": "gatekeeper.schema",
+                "title": "Gatekeeper Parameters Schema"
             }
         ],
         "menus": {
@@ -92,6 +97,11 @@
                 {
                     "command": "gatekeeper.deployTemplate",
                     "group": "99@2",
+                    "when": "editorLangId == rego"
+                },
+                {
+                    "command": "gatekeeper.schema",
+                    "group": "99@3",
                     "when": "editorLangId == rego"
                 }
             ],

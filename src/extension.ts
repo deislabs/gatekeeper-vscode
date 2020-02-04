@@ -11,6 +11,7 @@ import * as diagnostics from './diagnostics/diagnostics';
 import { GatekeeperCodeActionProvider } from './diagnostics/codeactionprovider';
 import { setEnforcementAction } from './commands/setEnforcementAction';
 import { deployTemplate } from './commands/deployTemplate';
+import { parametersSchema } from './commands/parametersSchema';
 
 export async function activate(context: vscode.ExtensionContext) {
     const clusterExplorer = await k8s.extension.clusterExplorer.v1;
@@ -36,6 +37,7 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('gatekeeper.enforcementAction', setEnforcementAction),
         vscode.commands.registerCommand('gatekeeper.violations', showViolations),
         vscode.commands.registerTextEditorCommand('gatekeeper.deployTemplate', deployTemplate),
+        vscode.commands.registerTextEditorCommand('gatekeeper.schema', parametersSchema),
         vscode.languages.registerCodeActionsProvider(regoSelector, codeActionProvider, { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }),
         vscode.workspace.registerFileSystemProvider(GK_REGO_RESOURCE_SCHEME, regofs),
     ];
