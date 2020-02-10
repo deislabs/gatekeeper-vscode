@@ -3,6 +3,7 @@ import * as k8s from 'vscode-kubernetes-tools-api';
 import { unavailableMessage, longRunning } from '../utils/host';
 import { ResourceBrowser } from '../ui/resource-browser';
 import { failed } from '../utils/errorable';
+import { getConstraintTemplate } from '../gatekeeper';
 
 export async function createConstraint(target: any) {
     const clusterExplorer = await k8s.extension.clusterExplorer.v1;
@@ -24,13 +25,13 @@ export async function createConstraint(target: any) {
 }
 
 async function tryCreateConstraint(kubectl: k8s.KubectlV1, templateName: string): Promise<void> {
-    // const template = await longRunning(`Getting constraint template crd/${templateName}`, () =>
-    //     getConstraintT(kubectl, templateName)
-    // );
-    // if (failed(template)) {
-    //     await vscode.window.showErrorMessage(`Can't get constraint template: ${template.error[0]}`);
-    //     return;
-    // }
+    const template = await longRunning(`Getting constraint template crd/${templateName}`, () =>
+        getConstraintTemplate(kubectl, templateName)
+    );
+    if (failed(template)) {
+        await vscode.window.showErrorMessage(`Can't get constraint template: ${template.error[0]}`);
+        return;
+    }
 
-    vscode.window.showInformationMessage('pretend to create constraint YAML');
+    vscode.window.showInformationMessage(`pretend to create a constraint with kind ${template.result.spec?.crd?.spec.names.kind}`);
 }
