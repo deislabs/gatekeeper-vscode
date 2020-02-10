@@ -90,12 +90,12 @@
                 {
                     "command": "gatekeeper.violations",
                     "group": "10",
-                    "when": "viewItem =~ /gatekeeper\\.constraint/i && viewItem =~ /hasviolations/i"
+                    "when": "viewItem =~ /gatekeeper\\.constraintinstance/i && viewItem =~ /hasviolations/i"
                 },
                 {
                     "command": "gatekeeper.enforcementAction",
                     "group": "5",
-                    "when": "viewItem =~ /gatekeeper\\.constraint/i"
+                    "when": "viewItem =~ /gatekeeper\\.constraintinstance/i"
                 },
                 {
                     "command": "gatekeeper.createConstraint",

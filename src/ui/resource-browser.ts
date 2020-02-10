@@ -109,7 +109,7 @@ class ConstraintNode implements k8s.ClusterExplorerV1.Node {
         const treeItem = new vscode.TreeItem(this.constraint.name, vscode.TreeItemCollapsibleState.None);
         treeItem.iconPath = this.extensionContext.asAbsolutePath(constraintIcon(this.constraint.status));
         treeItem.tooltip = constraintTooltip(this.constraint.status);
-        treeItem.contextValue = ['gatekeeper.constraint', 'gatekeeper.showable', ...constraintContexts(this.constraint)].join(' ');
+        treeItem.contextValue = ['gatekeeper.constraintinstance', 'gatekeeper.showable', ...constraintContexts(this.constraint)].join(' ');
         return treeItem;
     }
 }
