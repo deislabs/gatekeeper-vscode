@@ -87,8 +87,18 @@ function createParameters(schema: JSONSchema | undefined): object {
     if (!schema) {
         return {};
     }
+    if (!schema.properties) {
+        return {};
+    }
 
-    return { TODO: "this-bit" };
+    const parameters: { [key: string]: any } = {};
+
+    for (const [parameterName, parameterSchema] of Object.entries(schema.properties)) {
+        const value = parameterSchema.type === 'array' ? [] : "";
+        parameters[parameterName] = value;
+    }
+
+    return parameters;
 }
 
 async function promptName(): Promise<Cancellable<string>> {
