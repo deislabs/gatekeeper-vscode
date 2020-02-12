@@ -1,5 +1,6 @@
 import * as k8s from 'vscode-kubernetes-tools-api';
 import { Errorable } from "./utils/errorable";
+import { JSONSchema } from './authoring/associations';
 
 // * A ConstraintTemplate contains:
 //   + spec
@@ -57,7 +58,7 @@ export interface ConstraintTemplateDetail {
                     readonly singular?: string;
                 };
                 readonly validation?: {
-                    readonly openAPIV3Schema?: any; // TODO: JSON schema type
+                    readonly openAPIV3Schema?: JSONSchema;
                 }
             }
         }
