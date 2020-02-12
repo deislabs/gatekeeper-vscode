@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
 import * as k8s from 'vscode-kubernetes-tools-api';
 import * as yaml from 'js-yaml';
-import { unavailableMessage, longRunning } from '../utils/host';
+import * as path from 'path';
+import { unavailableMessage, longRunning, showWorkspaceFolderPick } from '../utils/host';
 import { ResourceBrowser } from '../ui/resource-browser';
 import { failed, Errorable } from '../utils/errorable';
 import { getConstraintTemplate, ConstraintTemplateDetail } from '../gatekeeper';
 import { JSONSchema } from '../authoring/associations';
 import { Cancellable } from '../utils/cancellable';
+import { fs } from '../utils/fs';
 
 export async function createConstraint(target: any) {
     const clusterExplorer = await k8s.extension.clusterExplorer.v1;
@@ -49,9 +51,15 @@ async function tryCreateConstraint(kubectl: k8s.KubectlV1, templateName: string)
         return;
     }
 
-    const constraintYAML = yaml.safeDump(constraint.result);
-    const document = await vscode.workspace.openTextDocument({ language: 'yaml', content: constraintYAML });  // TODO: would be nice to suggest a file name but can't do this without actually creating the file... // TODOL this results in no prompt for save when you close it
-    vscode.window.showTextDocument(document);
+    const constraintYAMLSnippet = yaml.safeDump(constraint.result);
+
+    const document = await createYAMLDocument(name.value);
+    if (document.cancelled) {
+        return;
+    }
+
+    const editor = await vscode.window.showTextDocument(document.value);
+    await editor.insertSnippet(new vscode.SnippetString(constraintYAMLSnippet));
 }
 
 async function constraintResource(template: ConstraintTemplateDetail, constraintName: string): Promise<Errorable<object>> {
@@ -64,26 +72,26 @@ async function constraintResource(template: ConstraintTemplateDetail, constraint
     }
 
     const crdSpec = template.spec.crd.spec;
-    const parameters = createParameters(crdSpec.validation?.openAPIV3Schema);
 
     const constraint = {
         apiVersion: "constraints.gatekeeper.sh/v1beta1",
         kind: crdSpec.names.kind,
         metadata: {
-            name: constraintName
+            name: placeholder(1, { defaultValue: constraintName })
         },
         spec: {
+            enforcementAction: placeholder(2, { choices: ['dryrun', 'deny'] }),
             match: {
                 kinds: []
             },
-            parameters: parameters
+            parameters: createParameters(crdSpec.validation?.openAPIV3Schema, 3)
         }
     };
 
     return { succeeded: true, result: constraint };
 }
 
-function createParameters(schema: JSONSchema | undefined): object {
+function createParameters(schema: JSONSchema | undefined, initialPlaceholderIndex: number): object {
     if (!schema) {
         return {};
     }
@@ -91,10 +99,12 @@ function createParameters(schema: JSONSchema | undefined): object {
         return {};
     }
 
+    let placeholderIndex = initialPlaceholderIndex;
     const parameters: { [key: string]: any } = {};
 
     for (const [parameterName, parameterSchema] of Object.entries(schema.properties)) {
-        const value = parameterSchema.type === 'array' ? [] : "";
+        const snippetPlaceholder = placeholder(placeholderIndex++);
+        const value = parameterSchema.type === 'array' ? [ snippetPlaceholder ] : snippetPlaceholder;
         parameters[parameterName] = value;
     }
 
@@ -115,3 +125,38 @@ function validateName(name: string): string | null {
     }
     return 'Name must begin with a letter and contain only letters, numbers, hyphens and periods';
 }
+
+function placeholder(index: number, content?: { defaultValue: string } | { choices: string[] }): string {
+    if (!content) {
+        return `${DOLLAR_OPEN_BRACE}${index}}`;
+    }
+    const defaultValue = (content as { defaultValue: string }).defaultValue;
+    const choices = (content as { choices: string[] }).choices;
+    if (defaultValue) {
+        return `${DOLLAR_OPEN_BRACE}${index}:${defaultValue}}`;
+    }
+    if (choices) {
+        return `${DOLLAR_OPEN_BRACE}${index}|${choices.join(',')}|}`;
+    }
+    return `${DOLLAR_OPEN_BRACE}${index}}`;
+}
+
+async function createYAMLDocument(name: string): Promise<Cancellable<vscode.TextDocument>> {
+    const targetFolder = await showWorkspaceFolderPick();
+    if (!targetFolder) {
+        return { cancelled: true };
+    }
+
+    const filePath = path.join(targetFolder.uri.fsPath, `${name}.yaml`);
+
+    try {
+        await fs.writeFile(filePath, '', 'utf8');  // TODO: handle overwrite situation
+        const document = await vscode.workspace.openTextDocument(filePath);
+        return { cancelled: false, value: document };
+    } catch (e) {
+        const document = await vscode.workspace.openTextDocument({ language: 'yaml', content: '' });
+        return { cancelled: false, value: document };
+    }
+}
+
+const DOLLAR_OPEN_BRACE = '${';
