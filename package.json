@@ -30,6 +30,7 @@
         "onCommand:gatekeeper.enforcementAction",
         "onCommand:gatekeeper.deployTemplate",
         "onCommand:gatekeeper.schema",
+        "onCommand:gatekeeper.createConstraint",
         "onLanguage:rego",
         "onView:extension.vsKubernetesExplorer"
     ],
@@ -63,6 +64,10 @@
             {
                 "command": "gatekeeper.schema",
                 "title": "Gatekeeper Parameters Schema"
+            },
+            {
+                "command": "gatekeeper.createConstraint",
+                "title": "Create Constraint from Template"
             }
         ],
         "menus": {
@@ -85,12 +90,17 @@
                 {
                     "command": "gatekeeper.violations",
                     "group": "10",
-                    "when": "viewItem =~ /gatekeeper\\.constraint/i && viewItem =~ /hasviolations/i"
+                    "when": "viewItem =~ /gatekeeper\\.constraintinstance/i && viewItem =~ /hasviolations/i"
                 },
                 {
                     "command": "gatekeeper.enforcementAction",
                     "group": "5",
-                    "when": "viewItem =~ /gatekeeper\\.constraint/i"
+                    "when": "viewItem =~ /gatekeeper\\.constraintinstance/i"
+                },
+                {
+                    "command": "gatekeeper.createConstraint",
+                    "group": "6",
+                    "when": "viewItem =~ /gatekeeper\\.constrainttemplate/i"
                 }
             ],
             "editor/context": [
@@ -120,6 +130,10 @@
                 },
                 {
                     "command": "gatekeeper.enforcementAction",
+                    "when": ""
+                },
+                {
+                    "command": "gatekeeper.createConstraint",
                     "when": ""
                 },
                 {

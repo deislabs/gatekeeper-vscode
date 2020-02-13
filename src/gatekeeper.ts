@@ -1,5 +1,6 @@
 import * as k8s from 'vscode-kubernetes-tools-api';
 import { Errorable } from "./utils/errorable";
+import { JSONSchema } from './authoring/associations';
 
 // * A ConstraintTemplate contains:
 //   + spec
@@ -40,6 +41,28 @@ import { Errorable } from "./utils/errorable";
 
 export interface ConstraintTemplateInfo {
     readonly name: string;
+}
+
+// TODO: extract named types
+export interface ConstraintTemplateDetail {
+    readonly metadata: {
+        readonly name: string;
+    };
+    readonly spec: {
+        readonly crd: {
+            readonly spec: {
+                readonly names: {
+                    readonly kind?: string;
+                    readonly listKind?: string;
+                    readonly plural?: string;
+                    readonly singular?: string;
+                };
+                readonly validation?: {
+                    readonly openAPIV3Schema?: JSONSchema;
+                }
+            }
+        }
+    };
 }
 
 export interface ConstraintInfo {
@@ -84,6 +107,16 @@ export async function listConstraintTemplates(kubectl: k8s.KubectlV1): Promise<E
     const templates = templatesListResource.items as any[];
     const templatesInfo = templates.map((t) => ({ name: t.metadata.name }));
     return { succeeded: true, result: templatesInfo };
+}
+
+export async function getConstraintTemplate(kubectl: k8s.KubectlV1, templateName: string): Promise<Errorable<ConstraintTemplateDetail>> {
+    const sr = await kubectl.invokeCommand(`get constrainttemplates/${templateName} -o json`);
+    if (!sr || sr.code !== 0) {
+        const error = sr ? sr.stderr : 'Unable to run kubectl';
+        return { succeeded: false, error: [error] };
+    }
+    const template = JSON.parse(sr.stdout);
+    return { succeeded: true, result: template };
 }
 
 export async function listConstraints(kubectl: k8s.KubectlV1, templateName: string): Promise<Errorable<ConstraintInfo[]>> {
