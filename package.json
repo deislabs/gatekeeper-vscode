@@ -27,6 +27,7 @@
         "onCommand:gatekeeper.violations",
         "onCommand:gatekeeper.show",
         "onCommand:gatekeeper.showRego",
+        "onCommand:gatekeeper.delete",
         "onCommand:gatekeeper.enforcementAction",
         "onCommand:gatekeeper.deployTemplate",
         "onCommand:gatekeeper.schema",
@@ -52,6 +53,10 @@
             {
                 "command": "gatekeeper.showRego",
                 "title": "Show Rego"
+            },
+            {
+                "command": "gatekeeper.delete",
+                "title": "Delete"
             },
             {
                 "command": "gatekeeper.enforcementAction",
@@ -86,6 +91,11 @@
                     "command": "gatekeeper.showRego",
                     "group": "1@2",
                     "when": "viewItem =~ /gatekeeper\\.constrainttemplate/i"
+                },
+                {
+                    "command": "gatekeeper.delete",
+                    "group": "3",
+                    "when": "viewItem =~ /gatekeeper\\.constrainttemplate/i || viewItem =~ /gatekeeper\\.constraintinstance/i"
                 },
                 {
                     "command": "gatekeeper.violations",
@@ -126,6 +136,10 @@
                 },
                 {
                     "command": "gatekeeper.showRego",
+                    "when": ""
+                },
+                {
+                    "command": "gatekeeper.delete",
                     "when": ""
                 },
                 {
