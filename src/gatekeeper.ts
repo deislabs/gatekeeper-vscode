@@ -59,9 +59,9 @@ export interface ConstraintTemplateDetail {
                 };
                 readonly validation?: {
                     readonly openAPIV3Schema?: JSONSchema;
-                }
-            }
-        }
+                };
+            };
+        };
     };
 }
 
