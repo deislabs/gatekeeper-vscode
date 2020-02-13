@@ -41,3 +41,11 @@ export async function selectRootFolder(): Promise<string | undefined> {
     }
     return folder.uri.fsPath;
 }
+
+export async function warnConfirm(message: string, acceptText: string, cancelText: string): Promise<boolean> {
+    const choice = await vscode.window.showWarningMessage(message, acceptText, cancelText);
+    if (!choice || choice === cancelText) {
+        return false;
+    }
+    return true;
+}
