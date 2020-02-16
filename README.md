@@ -47,7 +47,7 @@ Let me know if it causes problems, runs into limitations or is just fiddly to wo
 You will need the following VS Code extensions:
 
 * Kubernetes (https://marketplace.visualstudio.com/items?itemName=ms-kubernetes-tools.vscode-kubernetes-tools)
-* OPA (https://marketplace.visualstudio.com/items?itemName=ms-kubernetes-tools.kubernetes-opa-vscode)
+* OPA (https://marketplace.visualstudio.com/items?itemName=tsandall.opa)
 
 These are automatically installed if you install this extension from the Visual Studio Marketplace.
 
