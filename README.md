@@ -1,16 +1,55 @@
 # gatekeeper-vscode
 
-Rapidly develop and test Gatekeeper policies
+Rapidly develop, test and deploy Gatekeeper policies for your Kubernetes cluster.
 
 ## Features
 
+* Install Gatekeeper into a development cluster
+* Browse constraints and constraint templates in the Kubernetes cluster explorer
+* See which constraints have violations, and view violation details
+* Deploy a constraint template directly from a Rego file and a JSON schema
+* Scaffold a constraint from a constraint template
+* Scaffold a JSON schema from constraint template Rego
+* See a warning if template Rego uses a parameter not defined in the schema
+* Switch a constraint's enforcement action between Deny and Dry Run
+* View the constraint and template YAML definitions, and template Rego
+
+## Authoring Constraint Templates and Constraints
+
+**NOTE: This workflow is an alpha proposal, and may change based on feedback!**
+
+A constraint template consists of some Rego, defining the policy, and a CRD definition,
+specifying the names (e.g. the manifest kind) and validation schema for constraint
+resources, all bundled together into a YAML resource declaration. You probably don't
+want to have to work directly on such YAML: you'd rather, for example, create your Rego
+in a separate where the OPA extension can give you syntax highlighting and testing features.
+
+The Gatekeeper extension addresses this by allowing you to author your constraint template
+in two separate files, which are linked by a naming convention:
+
+* `<name>.rego` - the Rego policy definition for the constraint template
+* `<name>.schema.json` - the JSON schema for the parameters
+
+With this convention in place, you can right-click in the Rego file and choose
+**Deploy as Gatekeeper Constraint Template**.  The extension will merge the Rego and
+the parameter schema to create a YAML resource declaration, and display the
+resulting YAML for you to confirm and deploy.
+
+The `.rego/.schema.json` convention is also used for checks of the Rego file - for
+example if the Rego refers to `input.parameters.<name>` then the extension will
+warn if the `.schema.json` does not contain a declaration for `<name>`.
+
+**Please give me feedback on this convention through [GitHub issues](https://github.com/deislabs/gatekeeper-vscode/issues)!**
+Let me know if it causes problems, runs into limitations or is just fiddly to work with.  Thanks!
+
 ## Requirements
 
-## Extension Settings
+You will need the following VS Code extensions:
 
-## Known Issues
+* Kubernetes (https://marketplace.visualstudio.com/items?itemName=ms-kubernetes-tools.vscode-kubernetes-tools)
+* OPA (https://marketplace.visualstudio.com/items?itemName=ms-kubernetes-tools.kubernetes-opa-vscode)
 
-## Release Notes
+These are automatically installed if you install this extension from the Visual Studio Marketplace.
 
 ## Contributing
 
